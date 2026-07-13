@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #fafaf8;
+  --bg-2: #f2f4f0;
+  --card: #ffffff;
+  --border: #e6e9e3;
+  --text: #14201a;
+  --text-dim: #5b6b60;
+  --text-faint: #8a9a8e;
+  --green: #2f6f4f;
+  --green-2: #4f9d6f;
+  --green-light: #e7f3ea;
+  --green-glow: rgba(79, 157, 111, 0.25);
+}
+
+.dark {
+  --bg: #0b1210;
+  --bg-2: #0f1613;
+  --card: #121a17;
+  --border: #1e2b25;
+  --text: #eaf2ec;
+  --text-dim: #93a89c;
+  --text-faint: #5e7268;
+  --green: #59b884;
+  --green-2: #3fd68c;
+  --green-light: #122a1e;
+  --green-glow: rgba(63, 214, 140, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  transition: background .3s ease, color .3s ease;
+}
+
+::selection {
+  background: var(--green-glow);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.seed-card-line-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

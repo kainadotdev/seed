@@ -1,0 +1,165 @@
+// Seed — Prisma schema
+// Mapeia diretamente o modelo de dados do produto para PostgreSQL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Tipo de conteúdo que uma Seed pode assumir. Pode ser alterado manualmente
+/// pelo usuário ou sugerido pela IA conforme a ideia evolui.
+enum SeedType {
+  PENSAMENTO
+  PROJETO
+  DOCUMENTO
+  OBJETIVO
+  CHECKLIST
+  DIARIO
+  ARTIGO
+  LIVRO
+  PLANEJAMENTO
+}
+
+/// Estágio de evolução da Seed (semente → crescendo → projeto → colhida).
+enum SeedStatus {
+  SEMENTE
+  CRESCENDO
+  PROJETO
+  COLHIDA
+}
+
+/// Visibilidade da Seed. Tudo nasce PRIVATE; o usuário escolhe publicar.
+enum SeedVisibility {
+  PRIVATE
+  PUBLIC
+}
+
+/// Quem enviou uma mensagem em uma conversa de IA.
+enum MessageRole {
+  USER
+  AI
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  name         String
+  passwordHash String
+  avatar       String?
+  bio          String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  seeds            Seed[]
+  aiConversations   AIConversation[]
+  refreshTokens     RefreshToken[]
+  comments          Comment[]
+  savedSeeds        SavedSeed[]
+
+  @@map("users")
+}
+
+/// Refresh tokens são persistidos (hash) para permitir revogação/logout real,
+/// em vez de confiar apenas em um JWT stateless de longa duração.
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Seed {
+  id         String         @id @default(uuid())
+  ownerId    String
+  owner      User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  title      String
+  content    String
+  type       SeedType       @default(PENSAMENTO)
+  status     SeedStatus     @default(SEMENTE)
+  visibility SeedVisibility @default(PRIVATE)
+  favorite   Boolean        @default(false)
+  archived   Boolean        @default(false)
+  tags       String[]       @default([])
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  versions        SeedVersion[]
+  aiConversations AIConversation[]
+  comments        Comment[]
+  savedBy         SavedSeed[]
+
+  @@index([ownerId])
+  @@index([visibility])
+  @@map("seeds")
+}
+
+/// Comentário em uma Seed pública. Apenas leitura para quem não é dono —
+/// comentar, salvar e acompanhar são as únicas interações da Comunidade
+/// (sem curtidas: o foco é conhecimento, não popularidade).
+model Comment {
+  id        String   @id @default(uuid())
+  seedId    String
+  seed      Seed     @relation(fields: [seedId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([seedId])
+  @@map("comments")
+}
+
+/// Seed pública salva por outro usuário ("acompanhar"), sem editar o original.
+model SavedSeed {
+  id        String   @id @default(uuid())
+  seedId    String
+  seed      Seed     @relation(fields: [seedId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([seedId, userId])
+  @@index([userId])
+  @@map("saved_seeds")
+}
+
+/// Cada alteração relevante de conteúdo gera uma versão, permitindo mostrar
+/// o histórico de evolução da ideia e restaurar versões antigas.
+model SeedVersion {
+  id        String   @id @default(uuid())
+  seedId    String
+  seed      Seed     @relation(fields: [seedId], references: [id], onDelete: Cascade)
+  content   String
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([seedId])
+  @@map("seed_versions")
+}
+
+/// Histórico de conversa com a IA. `seedId` nulo representa a conversa
+/// global do usuário (IA que conhece o histórico geral).
+model AIConversation {
+  id        String      @id @default(uuid())
+  seedId    String?
+  seed      Seed?       @relation(fields: [seedId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      MessageRole
+  message   String
+  createdAt DateTime    @default(now())
+
+  @@index([seedId])
+  @@index([userId])
+  @@map("ai_conversations")
+}

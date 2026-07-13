@@ -1,0 +1,17 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: seed-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: seed
+      POSTGRES_PASSWORD: seed
+      POSTGRES_DB: seed_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - seed_pg_data:/var/lib/postgresql/data
+
+volumes:
+  seed_pg_data:
